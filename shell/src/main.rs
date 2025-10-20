@@ -1,16 +1,19 @@
 mod parsing;
 mod variables;
+mod commands;
 
-use std::io::{ Write };
+use commands::clear::*;
+use commands::cat::*;
+use std::io::{Write};
 use std::env;
 use parsing::split_save::*;
 use variables::var::*;
+use commands::clear::*;
 
 fn main() {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
     let mut var = Var::new();
-
     loop {
         if let Ok(path) = env::current_dir() {
             print!("{}> ", path.display());
@@ -31,15 +34,31 @@ fn main() {
                 break;
             }
         }
-
         let command = input.trim().to_string();
         if command.is_empty() {
             continue;
         }
         var = split_save(command.clone());
-        if var.command == "exit" {
-            break;
+
+        match var.command.as_str() {
+            "exit" => break,
+            "clear" => Clearaw(),
+          "pwd" => match env::current_dir() {
+                 Ok(path) => println!("{}/", path.display()),
+                Err(e) => eprintln!("Error getting current directory: {}", e),
+            }
+            "cat" => {
+                if var.args.len() == 0{
+                    eprintln!("error d cat f len");
+                    continue ;
+                }
+
+             let args: Vec<&str> = var.args.iter().map(|s| s.as_str()).collect();
+                        if let Err(e) = Catfile(&args) {
+                              eprintln!("cat error: {}", e);
+                          }
+            }
+            _ => println!("thawaa ? Command: {:?}", var),
         }
-        println!("Command: {:?}", var);
     }
 }
