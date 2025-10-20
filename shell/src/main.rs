@@ -4,6 +4,7 @@ mod commands;
 
 use commands::clear::*;
 use commands::cat::*;
+use commands::cd::*;
 use std::io::{Write};
 use std::env;
 use parsing::split_save::*;
@@ -58,6 +59,7 @@ fn main() {
                               eprintln!("cat {:?} : No such file or directory" ,  &args.join(" "));
                           }
             }
+           "cd" => Cdd(&var.args),
             _ => println!("thawaa ? Command: {:?}", var),
         }
     }
