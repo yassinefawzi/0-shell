@@ -55,7 +55,7 @@ fn main() {
 
              let args: Vec<&str> = var.args.iter().map(|s| s.as_str()).collect();
                         if let Err(e) = Catfile(&args) {
-                              eprintln!("cat error: {}", e);
+                              eprintln!("cat {:?} : No such file or directory" ,  &args.join(" "));
                           }
             }
             _ => println!("thawaa ? Command: {:?}", var),
