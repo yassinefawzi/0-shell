@@ -3,6 +3,7 @@ mod variables;
 mod commands;
 
 use commands::clear::*;
+use commands::ls::*;
 use commands::cat::*;
 use commands::cd::*;
 use std::io::{Write};
@@ -60,6 +61,7 @@ fn main() {
                           }
             }
            "cd" => Cdd(&var.args),
+           "ls" => Lss(),
             _ => println!("thawaa ? Command: {:?}", var),
         }
     }
