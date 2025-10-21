@@ -68,7 +68,7 @@ fn main() {
                           }
             }
            "cd" => Cdd(&var.args),
-           "ls" => Lss(),
+           "ls" => lss(&var.flags, &var.args),
           "mkdir" => {
             if var.args.is_empty() {
                 eprintln!("mkdir: missing operand");
