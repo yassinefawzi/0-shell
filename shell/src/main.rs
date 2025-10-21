@@ -67,8 +67,8 @@ fn main() {
                               eprintln!("cat {:?} : No such file or directory" ,  &args.join(" "));
                           }
             }
-           "cd" => Cdd(&var.args),
-           "ls" => lss(&var.flags, &var.args),
+           "cd" => cdd(&var.args),
+           //"ls" => lss(&var.flags, &var.args),
           "mkdir" => {
             if var.args.is_empty() {
                 eprintln!("mkdir: missing operand");
@@ -78,7 +78,15 @@ fn main() {
                  eprintln!("mkdir: {}", e);
                  }
             }
-            "cp" => cpp(),
+            "cp" => {
+                 if var.args.len() < 2 {
+                     eprintln!("cp: missing file operand");
+                    continue;
+                    }
+                  if let Err(e) = cpp(&var.args) {
+                        eprintln!("cp error: {}", e);
+                    }
+                }
             _ => println!("thawaa ? Command: {:?}", var),
         }
     }
