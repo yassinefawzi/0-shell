@@ -3,6 +3,7 @@ mod variables;
 mod commands;
 
 use commands::clear::*;
+use commands::cp::*;
 use commands::ls::*;
 use commands::cat::*;
 use commands::cd::*;
@@ -10,7 +11,6 @@ use std::io::{Write};
 use std::env;
 use parsing::split_save::*;
 use variables::var::*;
-use commands::clear::*;
 use commands::mkdir::*;
 fn main() {
     let stdin = std::io::stdin();
@@ -51,7 +51,7 @@ fn main() {
                     println!("\n");
                 }
             }
-            "clear" => Clearaw(),
+            "clear" => clearaw(),
           "pwd" => match env::current_dir() {
                  Ok(path) => println!("{}/", path.display()),
                 Err(e) => eprintln!("Error getting current directory: {}", e),
@@ -63,21 +63,22 @@ fn main() {
                 }
 
              let args: Vec<&str> = var.args.iter().map(|s| s.as_str()).collect();
-                        if let Err(e) = Catfile(&args) {
+                        if let Err(e) = catfile(&args) {
                               eprintln!("cat {:?} : No such file or directory" ,  &args.join(" "));
                           }
             }
-           "cd" => Cdd(&var.args),
-           "ls" => Lss(),
+           "cd" => cdd(&var.args),
+           "ls" => lss(),
           "mkdir" => {
             if var.args.is_empty() {
                 eprintln!("mkdir: missing operand");
                     continue;
              }
-            if let Err(e) = Mkdirr(&var.args) {
+            if let Err(e) = mkdirr(&var.args) {
                  eprintln!("mkdir: {}", e);
                  }
             }
+            "cp" => cpp(),
             _ => println!("thawaa ? Command: {:?}", var),
         }
     }

@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 
-pub fn Catfile(args: &[&str]) -> std::io::Result<()> {
+pub fn catfile(args: &[&str]) -> std::io::Result<()> {
         for &arg in args {
             let path = Path::new(arg);
 

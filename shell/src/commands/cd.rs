@@ -1,7 +1,7 @@
 use std::env;
 use std::path::Path;
 
-pub fn Cdd(args: &[String]) {
+pub fn cdd(args: &[String]) {
     if args.is_empty() {
         // Get home directory from env vars
         let home_dir = env::var("HOME")
