@@ -67,8 +67,8 @@ fn main() {
                               eprintln!("cat {:?} : No such file or directory" ,  &args.join(" "));
                           }
             }
-           "cd" => cdd(&var.args),
-           "ls" => lss(),
+           "cd" => Cdd(&var.args),
+           "ls" => lss(&var.flags, &var.args),
           "mkdir" => {
             if var.args.is_empty() {
                 eprintln!("mkdir: missing operand");
