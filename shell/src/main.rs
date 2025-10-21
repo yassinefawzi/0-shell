@@ -44,6 +44,13 @@ fn main() {
 
         match var.command.as_str() {
             "exit" => break,
+            "echo" => {
+                if !var.args.is_empty(){
+                    println!("{}" , var.args.join(" "));  
+                }else{
+                    println!("\n");
+                }
+            }
             "clear" => Clearaw(),
           "pwd" => match env::current_dir() {
                  Ok(path) => println!("{}/", path.display()),
