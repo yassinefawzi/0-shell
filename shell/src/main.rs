@@ -11,7 +11,7 @@ use std::env;
 use parsing::split_save::*;
 use variables::var::*;
 use commands::clear::*;
-
+use commands::mkdir::*;
 fn main() {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
@@ -69,6 +69,15 @@ fn main() {
             }
            "cd" => Cdd(&var.args),
            "ls" => Lss(),
+          "mkdir" => {
+            if var.args.is_empty() {
+                eprintln!("mkdir: missing operand");
+                    continue;
+             }
+            if let Err(e) = Mkdirr(&var.args) {
+                 eprintln!("mkdir: {}", e);
+                 }
+            }
             _ => println!("thawaa ? Command: {:?}", var),
         }
     }
