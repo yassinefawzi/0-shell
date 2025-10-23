@@ -6,6 +6,7 @@ use commands::clear::*;
 use commands::cp::*;
 use commands::ls::*;
 use commands::cat::*;
+use commands::mv::*;
 use commands::cd::*;
 use std::io::{Write};
 use std::env;
@@ -85,6 +86,15 @@ fn main() {
                     }
                   if let Err(e) = cpp(&var.args) {
                         eprintln!("cp error: {}", e);
+                    }
+                }
+                "mv"=>{
+                        if var.args.len() < 2 {
+                              eprintln!("mv: missing file operand");
+                             continue;
+                         }
+                         if let Err(e) = mvv(&var.args) {
+                        eprintln!("mv error: {}", e);
                     }
                 }
             _ => println!("thawaa ? Command: {:?}", var),
