@@ -13,6 +13,7 @@ use std::env;
 use parsing::split_save::*;
 use variables::var::*;
 use commands::mkdir::*;
+use commands::rm::*;
 fn main() {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
@@ -97,7 +98,12 @@ fn main() {
                         eprintln!("mv error: {}", e);
                     }
                 }
-            _ => println!("thawaa ? Command: {:?}", var),
+                  "rm" => {
+                if let Err(e) = Rm(&var.flags, &var.args) {
+                    eprintln!("rm: {}", e);
+                }
+            }
+            _ => println!("commmand not found or smt bdl hadi"),
         }
     }
 }
