@@ -12,7 +12,7 @@ pub fn cpp(args: &[String]) -> io::Result<()> {
     }
 
     if !src.exists() {
-        eprintln!("cp: No such file or directory");
+        eprintln!("cp: cannot stat '{}': No such file or directory" , src.display());
         return Ok(());
     }
 

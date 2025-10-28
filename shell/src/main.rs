@@ -4,20 +4,22 @@ mod commands;
 
 use commands::clear::*;
 use commands::cp::*;
-use commands::ls::*;
+//use commands::ls::*;
 use commands::cat::*;
 use commands::mv::*;
 use commands::cd::*;
-use std::io::{Write};
+use std::io::Write;
 use std::env;
 use parsing::split_save::*;
 use variables::var::*;
 use commands::mkdir::*;
 use commands::rm::*;
+
 fn main() {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
     let mut var = Var::new();
+
     loop {
         if let Ok(path) = env::current_dir() {
             print!("{}> ", path.display());
@@ -38,72 +40,88 @@ fn main() {
                 break;
             }
         }
+
         let command = input.trim().to_string();
         if command.is_empty() {
             continue;
         }
+
         var = split_save(command.clone());
 
         match var.command.as_str() {
             "exit" => break,
+
             "echo" => {
-                if !var.args.is_empty(){
-                    println!("{}" , var.args.join(" "));  
-                }else{
+                if !var.args.is_empty() {
+                    println!("{}", var.args.join(" "));
+                } else {
                     println!("\n");
                 }
             }
+
             "clear" => clearaw(),
-          "pwd" => match env::current_dir() {
-                 Ok(path) => println!("{}/", path.display()),
+
+            "pwd" => match env::current_dir() {
+                Ok(path) => println!("{}/", path.display()),
                 Err(e) => eprintln!("Error getting current directory: {}", e),
-            }
+            },
+
             "cat" => {
-                if var.args.len() == 0{
-                    eprintln!("error d cat f len");
-                    continue ;
+                if var.args.is_empty() {
+                    eprintln!("cat: missing file operand");
+                    continue;
                 }
 
-             let args: Vec<&str> = var.args.iter().map(|s| s.as_str()).collect();
-                        if let Err(e) = catfile(&args) {
-                              eprintln!("cat {:?} : No such file or directory" ,  &args.join(" "));
-                          }
+                let args: Vec<&str> = var.args.iter().map(|s| s.as_str()).collect();
+
+                args.iter().for_each(|file| {
+                    if catfile(&[file]).is_err() {
+                        eprintln!("cat {}: No such file or directory", file);
+                    }
+                });
             }
-           "cd" => cdd(&var.args),
-           //"ls" => lss(&var.flags, &var.args),
-          "mkdir" => {
-            if var.args.is_empty() {
-                eprintln!("mkdir: missing operand");
+
+            "cd" => cdd(&var.args),
+
+            //"ls" => lss(&var.flags, &var.args),
+
+            "mkdir" => {
+                if var.args.is_empty() {
+                    eprintln!("mkdir: missing operand");
                     continue;
-             }
-            if let Err(e) = mkdirr(&var.args) {
-                 eprintln!("mkdir: {}", e);
-                 }
+                }
+                if let Err(e) = mkdirr(&var.args) {
+                    eprintln!("mkdir: {}", e);
+                }
             }
+
             "cp" => {
-                 if var.args.len() < 2 {
-                     eprintln!("cp: missing file operand");
+                if var.args.len() < 2 {
+                    eprintln!("cp: missing file operand");
                     continue;
-                    }
-                  if let Err(e) = cpp(&var.args) {
-                        eprintln!("cp error: {}", e);
-                    }
                 }
-                "mv"=>{
-                        if var.args.len() < 2 {
-                              eprintln!("mv: missing file operand");
-                             continue;
-                         }
-                         if let Err(e) = mvv(&var.args) {
-                        eprintln!("mv error: {}", e);
-                    }
+                if let Err(e) = cpp(&var.args) {
+                    eprintln!("cp error: {}", e);
                 }
-                  "rm" => {
+            }
+
+            "mv" => {
+                if var.args.len() < 2 {
+                    eprintln!("mv: missing file operand");
+                    continue;
+                }
+                if let Err(e) = mvv(&var.args) {
+                    eprintln!("mv error: {}", e);
+                }
+            }
+
+            "rm" => {
                 if let Err(e) = Rm(&var.flags, &var.args) {
                     eprintln!("rm: {}", e);
                 }
             }
-            _ => println!("commmand not found or smt bdl hadi"),
+
+            _ => println!("command not found or smt bdl hadi"),
         }
     }
 }
