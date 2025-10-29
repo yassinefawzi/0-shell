@@ -68,7 +68,7 @@ fn main() {
 
             "cat" => {
                 if var.args.is_empty() {
-                    eprintln!("cat: missing file operand");
+                    eprintln!("cat: missing file opezzzzzzzrand");
                     continue;
                 }
 
