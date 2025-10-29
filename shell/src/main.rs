@@ -67,6 +67,10 @@ fn main() {
             },
 
             "cat" => {
+                 if !var.flags.is_empty(){
+                eprintln!("cat: -{} is not supported", var.flags.join(""));
+                    continue;
+                }
                 let args: Vec<&str> = var.args.iter().map(|s| s.as_str()).collect();
 
                 // Handle no arguments: read from stdin
@@ -89,6 +93,10 @@ fn main() {
 
             "ls" => lss(&var.flags, &var.args),
             "mkdir" => {
+                 if !var.flags.is_empty(){
+                eprintln!("mkdir: -{} is not supported", var.flags.join(""));
+                    continue;
+                }
                 if var.args.is_empty() {
                     eprintln!("mkdir: missing operand");
                     continue;
@@ -99,6 +107,10 @@ fn main() {
             }
 
             "cp" => {
+                 if !var.flags.is_empty(){
+                eprintln!("cp: -{} is not supported", var.flags.join(""));
+                    continue;
+                }
                 if var.args.len() < 2 {
                     eprintln!("cp: missing file operand");
                     continue;
@@ -109,6 +121,10 @@ fn main() {
             }
 
             "mv" => {
+                if !var.flags.is_empty(){
+                eprintln!("mv: -{} is not supported", var.flags.join(""));
+                    continue;
+                }
                 if var.args.len() < 2 {
                     eprintln!("mv: missing file operand");
                     continue;
@@ -124,7 +140,6 @@ fn main() {
                 }
             }
 
-            // ma3rftch had l9lawi kif khaso itfixa chuf nhaydo var nkhliw gha string command not found
             _ => println!("command not found: {}", var.command),
         }
     }
