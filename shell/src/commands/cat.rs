@@ -1,25 +1,31 @@
-use std::io::{self, Write};
+use std::io;
 use std::fs;
 use std::path::Path;
 
-
-pub fn catfile(args: &[&str]) -> std::io::Result<()> {
-        for &arg in args {
-            let path = Path::new(arg);
-
-            if path.is_dir() {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!("'{}' is a directory", arg),
-                ));
+pub fn catfile(args: &[&str]) -> io::Result<()> {
+    if args.is_empty() {
+        let mut line = String::new();
+        loop {
+            line.clear();
+            let n = io::stdin().read_line(&mut line)?;
+            if n == 0 {
+                break;
             }
-
-            let mut file = fs::File::open(path)?;
-            io::copy(&mut file, &mut io::stdout())?;
-              println!();
+            print!("{}", line);
         }
-    
+        return Ok(());
+    }
 
-    io::stdout().flush()?;
+    for &file in args {
+        let path = Path::new(file);
+        if path.is_dir() {
+             eprintln!("'{}' is a directory", file);
+        return Ok(());
+        }
+
+        let mut file = fs::File::open(path)?;
+        io::copy(&mut file, &mut io::stdout())?;
+    }
+
     Ok(())
 }

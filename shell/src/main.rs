@@ -1,19 +1,19 @@
+mod commands;
 mod parsing;
 mod variables;
-mod commands;
 
 use commands::clear::*;
 use commands::cp::*;
 //use commands::ls::*;
 use commands::cat::*;
-use commands::mv::*;
 use commands::cd::*;
-use std::io::Write;
-use std::env;
-use parsing::split_save::*;
-use variables::var::*;
 use commands::mkdir::*;
+use commands::mv::*;
 use commands::rm::*;
+use parsing::split_save::*;
+use std::env;
+use std::io::Write;
+use variables::var::*;
 
 fn main() {
     let stdin = std::io::stdin();
@@ -67,24 +67,27 @@ fn main() {
             },
 
             "cat" => {
-                if var.args.is_empty() {
-                    eprintln!("cat: missing file opezzzzzzzrand");
+                let args: Vec<&str> = var.args.iter().map(|s| s.as_str()).collect();
+
+                // Handle no arguments: read from stdin
+                if args.is_empty() {
+                    if let Err(e) = catfile(&[]) {
+                        eprintln!("cat: {}", e);
+                    }
                     continue;
                 }
 
-                let args: Vec<&str> = var.args.iter().map(|s| s.as_str()).collect();
-
-                args.iter().for_each(|file| {
-                    if catfile(&[file]).is_err() {
-                        eprintln!("cat {}: No such file or directory", file);
+                // Handle each file argument
+                for &file in &args {
+                    if let Err(_) = catfile(&[file]) {
+                        eprintln!("cat: {}: No such file or directory", file);
                     }
-                });
+                }
             }
 
             "cd" => cdd(&var.args),
 
             //"ls" => lss(&var.flags, &var.args),
-
             "mkdir" => {
                 if var.args.is_empty() {
                     eprintln!("mkdir: missing operand");
@@ -121,7 +124,7 @@ fn main() {
                 }
             }
 
-			// ma3rftch had l9lawi kif khaso itfixa chuf nhaydo var nkhliw gha string command not found
+            // ma3rftch had l9lawi kif khaso itfixa chuf nhaydo var nkhliw gha string command not found
             _ => println!("command not found: {}", var.command),
         }
     }
