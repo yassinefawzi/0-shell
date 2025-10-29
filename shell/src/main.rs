@@ -121,7 +121,8 @@ fn main() {
                 }
             }
 
-            _ => println!("command not found or smt bdl hadi"),
+			// ma3rftch had l9lawi kif khaso itfixa chuf nhaydo var nkhliw gha string command not found
+            _ => println!("command not found: {}", var.command),
         }
     }
 }

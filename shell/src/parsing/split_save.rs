@@ -1,3 +1,4 @@
+use std::io::{ self, Write };
 use crate::variables::var::*;
 
 pub fn remove_all_quotes(s: &str) -> String {
@@ -6,54 +7,78 @@ pub fn remove_all_quotes(s: &str) -> String {
         .collect()
 }
 
-pub fn check_quote_error(input: &str) -> Option<String> {
-    let mut single_open = false;
-    let mut double_open = false;
+#[derive(PartialEq)]
+enum QuoteState {
+    None,
+    Single,
+    Double,
+}
 
-    for c in input.chars() {
+fn quote_state(s: &str) -> QuoteState {
+    let mut state = QuoteState::None;
+    for c in s.chars() {
         match c {
-            '\'' if !double_open => {
-                single_open = !single_open;
+            '\'' if state != QuoteState::Double => {
+                state = if state == QuoteState::Single {
+                    QuoteState::None
+                } else {
+                    QuoteState::Single
+                };
             }
-            '"' if !single_open => {
-                double_open = !double_open;
+            '"' if state != QuoteState::Single => {
+                state = if state == QuoteState::Double {
+                    QuoteState::None
+                } else {
+                    QuoteState::Double
+                };
             }
             _ => {}
         }
     }
-
-    if single_open || double_open {
-        Some("Unclosed quote".to_string())
-    } else {
-        None
-    }
+    state
 }
 
 pub fn flatten_flags(flags: Vec<String>) -> Vec<String> {
     let mut result = Vec::new();
-
     for flag in flags {
         for c in flag.trim_start_matches('-').chars() {
             result.push(c.to_string());
         }
     }
-
     result
 }
 
+pub fn split_save(mut input: String) -> Var {
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    input = input.trim_end().to_string();
+    let mut state = quote_state(&input);
 
-pub fn split_save(input: String) -> Var {
-    let input = input.trim();
+    while state != QuoteState::None {
+        match state {
+            QuoteState::Single => print!("quote> "),
+            QuoteState::Double => print!("dquote> "),
+            QuoteState::None => {
+                break;
+            }
+        }
+        stdout.flush().unwrap();
+
+        let mut next_line = String::new();
+        if stdin.read_line(&mut next_line).is_err() {
+            break;
+        }
+        input.push('\n');
+        input.push_str(next_line.trim_end());
+
+        state = quote_state(&input);
+    }
+
     if input.is_empty() {
         return Var::new();
     }
 
-    if let Some(err) = check_quote_error(input) {
-        println!("Error: {}", err);
-        return Var::new();
-    }
-
-    let tokens = tokenize(input);
+    let tokens = tokenize(&input);
     if tokens.is_empty() {
         return Var::new();
     }
@@ -70,7 +95,7 @@ pub fn split_save(input: String) -> Var {
         }
     }
 
-	let flags = flatten_flags(flags);
+    let flags = flatten_flags(flags);
     Var { command, flags, args }
 }
 
