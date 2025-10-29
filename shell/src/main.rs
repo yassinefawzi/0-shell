@@ -4,7 +4,7 @@ mod variables;
 
 use commands::clear::*;
 use commands::cp::*;
-//use commands::ls::*;
+use commands::ls::*;
 use commands::cat::*;
 use commands::cd::*;
 use commands::mkdir::*;
@@ -87,7 +87,7 @@ fn main() {
 
             "cd" => cdd(&var.args),
 
-            //"ls" => lss(&var.flags, &var.args),
+            "ls" => lss(&var.flags, &var.args),
             "mkdir" => {
                 if var.args.is_empty() {
                     eprintln!("mkdir: missing operand");
