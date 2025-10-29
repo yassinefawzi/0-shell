@@ -2,7 +2,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-pub fn Rm(flags: &[String], args: &[String]) -> io::Result<()> {
+pub fn rm(flags: &[String], args: &[String]) -> io::Result<()> {
     if args.is_empty() {
         eprintln!("rm: missing operand");
         return Ok(());

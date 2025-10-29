@@ -116,7 +116,7 @@ fn main() {
             }
 
             "rm" => {
-                if let Err(e) = Rm(&var.flags, &var.args) {
+                if let Err(e) = rm(&var.flags, &var.args) {
                     eprintln!("rm: {}", e);
                 }
             }
