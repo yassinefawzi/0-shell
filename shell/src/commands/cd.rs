@@ -18,7 +18,7 @@ pub fn cdd(args: &[String]) {
     } else {
         let target = &args[0];
         if let Err(e) = env::set_current_dir(target) {
-            eprintln!("cd: {}: {}", target, e);
+            eprintln!("cd: {}: {}", e.to_string(),target);
         }
     }
 }
