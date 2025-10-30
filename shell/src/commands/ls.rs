@@ -102,13 +102,13 @@ fn list_file(path: &Path, name: &str, config: &LsConfig, output: &mut String) ->
         } else {
             let mut s = String::with_capacity(name.len() + 1);
             s.push_str(name);
-            s.push_str(suffix_for( &meta));
+            s.push_str(suffix_for(&meta, config.classify));
             s
         }
     } else if config.classify {
         let mut s = String::with_capacity(name.len() + 1);
         s.push_str(name);
-        s.push_str(suffix_for(&meta));
+        s.push_str(suffix_for(&meta, config.classify));
         s
     } else {
         name.to_string()
@@ -117,7 +117,7 @@ fn list_file(path: &Path, name: &str, config: &LsConfig, output: &mut String) ->
     let colored_name = colorize(&display_name, &meta);
 
     if config.long_format {
-        output.push_str(&long_format_line(path, &meta, &colored_name));
+        output.push_str(&long_format_line(path, &meta, &colored_name, config.classify));
         output.push('\n');
     } else {
         output.push_str(&colored_name);
@@ -162,7 +162,7 @@ fn list_directory(path: &Path, config: &LsConfig, output: &mut String) -> io::Re
 
         for (name, path, meta) in &items {
             let colored = colorize(name, meta);
-            output.push_str(&long_format_line(path, meta, &colored));
+            output.push_str(&long_format_line(path, meta, &colored, config.classify));
             output.push('\n');
         }
     } else {
@@ -172,7 +172,7 @@ fn list_directory(path: &Path, config: &LsConfig, output: &mut String) -> io::Re
                 let mut n = String::with_capacity(name.len() + 1);
                 n.push_str(name);
                 if config.classify {
-                    n.push_str(suffix_for( meta));
+                    n.push_str(suffix_for(meta, config.classify));
                 }
                 colorize(&n, meta)
             })
@@ -290,14 +290,18 @@ fn ls_cmp(a: &str, b: &str) -> Ordering {
 }
 
 #[inline]
-fn suffix_for<'a>(meta: &'a fs::Metadata) -> &'a str {
+fn suffix_for<'a>(meta: &'a fs::Metadata, classify: bool) -> &'a str {
+    if !classify {
+        return "";
+    }
+    
     let ft = meta.file_type();
 
     if ft.is_symlink() {
         return "@";
     }
 
-    if ft.is_dir() {
+    if ft.is_dir()  {
         "/"
     } else if ft.is_file() && (meta.mode() & 0o111 != 0) {
         "*"
@@ -351,7 +355,7 @@ fn permissions_string(meta: &fs::Metadata) -> String {
     chars.iter().collect()
 }
 
-fn long_format_line(path: &Path, meta: &fs::Metadata, name: &str) -> String {
+fn long_format_line(path: &Path, meta: &fs::Metadata, name: &str, classify: bool) -> String {
     let file_type = file_type_char(meta);
     let perms = permissions_string(meta);
     let nlink = meta.nlink();
@@ -393,8 +397,8 @@ fn long_format_line(path: &Path, meta: &fs::Metadata, name: &str) -> String {
             display_name.push_str(" -> ");
             display_name.push_str(&target_path.to_string_lossy());
         }
-    } else {
-        display_name.push_str(suffix_for( meta));
+    } else if classify {
+        display_name.push_str(suffix_for(meta, classify));
     }
 
     format!(
