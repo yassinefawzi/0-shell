@@ -1,4 +1,4 @@
-use std::io::{ self, Write };
+use std::io::{self, Write};
 use crate::variables::var::*;
 
 pub fn remove_all_quotes(s: &str) -> String {
@@ -16,7 +16,19 @@ enum QuoteState {
 
 fn quote_state(s: &str) -> QuoteState {
     let mut state = QuoteState::None;
+    let mut escape = false;
+
     for c in s.chars() {
+        if escape {
+            escape = false;
+            continue;
+        }
+
+        if c == '\\' {
+            escape = true;
+            continue;
+        }
+
         match (c, state) {
             ('\'', QuoteState::None) => state = QuoteState::Single,
             ('\'', QuoteState::Single) => state = QuoteState::None,
@@ -25,9 +37,9 @@ fn quote_state(s: &str) -> QuoteState {
             _ => {}
         }
     }
+
     state
 }
-
 
 pub fn flatten_flags(flags: Vec<String>) -> Vec<String> {	
     let mut result = Vec::new();
@@ -49,9 +61,7 @@ pub fn split_save(mut input: String) -> Var {
         match state {
             QuoteState::Single => print!("quote> "),
             QuoteState::Double => print!("dquote> "),
-            QuoteState::None => {
-                break;
-            }
+            QuoteState::None => break,
         }
         stdout.flush().unwrap();
 
@@ -59,6 +69,7 @@ pub fn split_save(mut input: String) -> Var {
         if stdin.read_line(&mut next_line).is_err() {
             break;
         }
+        input.push('\n');
         input.push_str(next_line.trim_end());
 
         state = quote_state(&input);
@@ -94,10 +105,15 @@ fn tokenize(s: &str) -> Vec<String> {
     let mut current = String::new();
     let mut chars = s.chars().peekable();
     let mut in_quotes = None;
+    let mut escape = false;
 
     while let Some(&c) = chars.peek() {
         match c {
-            '"' | '\'' => {
+            '\\' if !escape => {
+                escape = true;
+                chars.next();
+            }
+            '"' | '\'' if !escape => {
                 let quote = c;
                 if in_quotes.is_none() {
                     in_quotes = Some(quote);
@@ -110,16 +126,21 @@ fn tokenize(s: &str) -> Vec<String> {
                     chars.next();
                 }
             }
-            ' ' if in_quotes.is_none() => {
-                if !current.is_empty() {
-                    tokens.push(current.clone());
-                    current.clear();
-                }
-                chars.next();
-            }
             _ => {
-                current.push(c);
-                chars.next();
+                if escape {
+                    current.push(c);
+                    escape = false;
+                    chars.next();
+                } else if c == ' ' && in_quotes.is_none() {
+                    if !current.is_empty() {
+                        tokens.push(current.clone());
+                        current.clear();
+                    }
+                    chars.next();
+                } else {
+                    current.push(c);
+                    chars.next();
+                }
             }
         }
     }
