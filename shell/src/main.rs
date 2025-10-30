@@ -21,9 +21,9 @@ fn main() {
 
     loop {
         if let Ok(path) = env::current_dir() {
-            print!("{}> ", path.display());
+            print!("{}$ ", path.display());
         } else {
-            print!("?> ");
+            print!("$ ");
         }
 
         stdout.flush().unwrap();
