@@ -13,12 +13,11 @@ use commands::rm::*;
 use parsing::split_save::*;
 use std::env;
 use std::io::Write;
-use variables::var::*;
 
 fn main() {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
-    let mut var = Var::new();
+    let mut var;
 
     loop {
         if let Ok(path) = env::current_dir() {
