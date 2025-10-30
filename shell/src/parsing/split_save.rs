@@ -7,7 +7,7 @@ pub fn remove_all_quotes(s: &str) -> String {
         .collect()
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 enum QuoteState {
     None,
     Single,
@@ -17,28 +17,19 @@ enum QuoteState {
 fn quote_state(s: &str) -> QuoteState {
     let mut state = QuoteState::None;
     for c in s.chars() {
-        match c {
-            '\'' if state != QuoteState::Double => {
-                state = if state == QuoteState::Single {
-                    QuoteState::None
-                } else {
-                    QuoteState::Single
-                };
-            }
-            '"' if state != QuoteState::Single => {
-                state = if state == QuoteState::Double {
-                    QuoteState::None
-                } else {
-                    QuoteState::Double
-                };
-            }
+        match (c, state) {
+            ('\'', QuoteState::None) => state = QuoteState::Single,
+            ('\'', QuoteState::Single) => state = QuoteState::None,
+            ('"', QuoteState::None) => state = QuoteState::Double,
+            ('"', QuoteState::Double) => state = QuoteState::None,
             _ => {}
         }
     }
     state
 }
 
-pub fn flatten_flags(flags: Vec<String>) -> Vec<String> {
+
+pub fn flatten_flags(flags: Vec<String>) -> Vec<String> {	
     let mut result = Vec::new();
     for flag in flags {
         for c in flag.trim_start_matches('-').chars() {
@@ -68,7 +59,6 @@ pub fn split_save(mut input: String) -> Var {
         if stdin.read_line(&mut next_line).is_err() {
             break;
         }
-        input.push('\n');
         input.push_str(next_line.trim_end());
 
         state = quote_state(&input);
