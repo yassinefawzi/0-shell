@@ -64,7 +64,7 @@ fn main() {
                 Ok(path) => println!("{}", path.display()),
                 Err(e) => eprintln!("Error getting current directory: {}", e),
             },
-
+//a
             "cat" => {
                  if !var.flags.is_empty(){
                 eprintln!("cat: -{} is not supported", var.flags.join(""));
