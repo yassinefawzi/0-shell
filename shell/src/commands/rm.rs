@@ -3,7 +3,6 @@ use std::io;
 use std::path::Path;
 
 pub fn rm(flags: &[String], args: &[String]) -> io::Result<()> {
-    println!("thawaaa {:?}", args);
     if args.is_empty() {
         eprintln!("rm: missing operand");
         return Ok(());
