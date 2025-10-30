@@ -2,6 +2,7 @@ use chrono::{Datelike, TimeZone};
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::{cmp::Ordering, fs, io, path::Path};
 use users::{get_group_by_gid, get_user_by_uid};
+use terminal_size::{Width, terminal_size};
 
 /// ANSI color codes
 const BLUE: &str = "\x1b[34m";
@@ -40,11 +41,11 @@ pub fn lss(flags: &[String], args: &[String]) {
     };
 
     // Print errors first
-    for error in errors {
+    for error in &errors {
         eprintln!("{}", error);
     }
 
-    let mut output = String::new();
+    let mut output = String::with_capacity(4096);
     list_targets(&targets, &config, &mut output);
 
     if output.ends_with('\n') {
@@ -64,49 +65,63 @@ fn list_targets(targets: &[&str], config: &LsConfig, output: &mut String) {
         let path = Path::new(target);
 
         if show_header {
-            output.push_str(&format!("{}:\n", target));
+            output.push_str(target);
+            output.push_str(":\n");
         }
 
         // Handle single file or symlink
         if path.is_file() || (path.is_symlink() && !path.is_dir()) {
             if let Err(e) = list_file(path, target, config, output) {
-                output.push_str(&format!("ls: {}: {}\n", target, e));
+                output.push_str("ls: ");
+                output.push_str(target);
+                output.push_str(": ");
+                output.push_str(&e.to_string());
+                output.push('\n');
             }
             continue;
         }
 
         // Handle directory
         if let Err(e) = list_directory(path, config, output) {
-            output.push_str(&format!("ls: {}: {}\n", target, e));
+            output.push_str("ls: ");
+            output.push_str(target);
+            output.push_str(": ");
+            output.push_str(&e.to_string());
+            output.push('\n');
         }
     }
 }
 
 fn list_file(path: &Path, name: &str, config: &LsConfig, output: &mut String) -> io::Result<()> {
     let meta = fs::symlink_metadata(path)?;
+    let is_symlink = meta.file_type().is_symlink();
 
     let display_name = if config.long_format {
-        if meta.file_type().is_symlink() {
+        if is_symlink {
             name.to_string()
         } else {
-            format!("{}{}", name, suffix_for(path, &meta))
+            let mut s = String::with_capacity(name.len() + 1);
+            s.push_str(name);
+            s.push_str(suffix_for( &meta));
+            s
         }
     } else if config.classify {
-        format!("{}{}", name, suffix_for(path, &meta))
+        let mut s = String::with_capacity(name.len() + 1);
+        s.push_str(name);
+        s.push_str(suffix_for(&meta));
+        s
     } else {
         name.to_string()
     };
 
-    // Apply color
     let colored_name = colorize(&display_name, &meta);
 
     if config.long_format {
-        output.push_str(&format!(
-            "{}\n",
-            long_format_line(path, &meta, &colored_name)
-        ));
+        output.push_str(&long_format_line(path, &meta, &colored_name));
+        output.push('\n');
     } else {
-        output.push_str(&format!("{}\n", colored_name));
+        output.push_str(&colored_name);
+        output.push('\n');
     }
     Ok(())
 }
@@ -125,7 +140,7 @@ fn list_directory(path: &Path, config: &LsConfig, output: &mut String) -> io::Re
 
     for entry in fs::read_dir(path)? {
         let entry = entry?;
-        let name = entry.file_name().to_string_lossy().to_string();
+        let name = entry.file_name().to_string_lossy().into_owned();
 
         if !config.show_all && name.starts_with('.') {
             continue;
@@ -137,25 +152,27 @@ fn list_directory(path: &Path, config: &LsConfig, output: &mut String) -> io::Re
         }
     }
 
-    items.sort_by(|a, b| ls_cmp(&a.0, &b.0));
+    items.sort_unstable_by(|a, b| ls_cmp(&a.0, &b.0));
 
     if config.long_format {
         let total_blocks: u64 = items.iter().map(|(_, _, m)| m.blocks() as u64).sum();
-        output.push_str(&format!("total {}\n", (total_blocks + 1) / 2));
-    }
+        output.push_str("total ");
+        output.push_str(&((total_blocks + 1) / 2).to_string());
+        output.push('\n');
 
-    if config.long_format {
         for (name, path, meta) in &items {
             let colored = colorize(name, meta);
-            output.push_str(&format!("{}\n", long_format_line(path, meta, &colored)));
+            output.push_str(&long_format_line(path, meta, &colored));
+            output.push('\n');
         }
     } else {
         let short_names: Vec<String> = items
             .iter()
-            .map(|(name, path, meta)| {
-                let mut n = name.clone();
+            .map(|(name, _path, meta)| {
+                let mut n = String::with_capacity(name.len() + 1);
+                n.push_str(name);
                 if config.classify {
-                    n.push_str(suffix_for(path, meta));
+                    n.push_str(suffix_for( meta));
                 }
                 colorize(&n, meta)
             })
@@ -170,44 +187,88 @@ fn list_directory(path: &Path, config: &LsConfig, output: &mut String) -> io::Re
 /// Apply ANSI colors similar to `ls --color`
 fn colorize(name: &str, meta: &fs::Metadata) -> String {
     let ft = meta.file_type();
+    let mode = meta.mode();
 
     if ft.is_symlink() {
         format!("{CYAN}{name}{RESET}")
     } else if ft.is_dir() {
         format!("{BLUE}{name}{RESET}")
-    } else if meta.mode() & 0o111 != 0 {
+    } else if mode & 0o111 != 0 {
         format!("{GREEN}{name}{RESET}")
-    } else if (meta.mode() & 0o170000) == 0o010000 {
+    } else if (mode & 0o170000) == 0o010000 {
         format!("{YELLOW}{name}{RESET}")
-    } else if (meta.mode() & 0o170000) == 0o140000 {
+    } else if (mode & 0o170000) == 0o140000 {
         format!("{MAGENTA}{name}{RESET}")
     } else {
         name.to_string()
     }
 }
 
+// Add this to your Cargo.toml dependencies:
+// terminal_size = "0.3"
+
 fn format_columns(names: &[String], output: &mut String) {
     if names.is_empty() {
         return;
     }
 
-    const TERM_WIDTH: usize = 80;
     const MIN_GAP: usize = 2;
+    const FALLBACK_WIDTH: usize = 80;
 
-    let max_width = names.iter().map(|s| s.len()).max().unwrap_or(0);
+    // Get actual terminal width
+    let term_width = terminal_size()
+        .map(|(Width(w), _)| w as usize)
+        .unwrap_or(FALLBACK_WIDTH);
+
+    // Strip ANSI codes for width calculation
+    fn visible_width(s: &str) -> usize {
+        let mut width = 0;
+        let mut in_escape = false;
+        for c in s.chars() {
+            if c == '\x1b' {
+                in_escape = true;
+            } else if in_escape && c == 'm' {
+                in_escape = false;
+            } else if !in_escape {
+                width += 1;
+            }
+        }
+        width
+    }
+
+    // Calculate visible widths for all names
+    let widths: Vec<usize> = names.iter().map(|s| visible_width(s)).collect();
+    let max_width = *widths.iter().max().unwrap_or(&0);
+    
+    // If even one item won't fit, print one per line
+    if max_width >= term_width {
+        for name in names {
+            output.push_str(name);
+            output.push('\n');
+        }
+        return;
+    }
+
+    // Calculate optimal number of columns
     let col_width = max_width + MIN_GAP;
-    let num_cols = (TERM_WIDTH / col_width).max(1);
+    let num_cols = (term_width / col_width).max(1);
     let num_rows = (names.len() + num_cols - 1) / num_cols;
 
+    // Print in column-major order
     for row in 0..num_rows {
         for col in 0..num_cols {
-            let idx = row * num_cols + col;
+            let idx = col * num_rows + row;
             if idx < names.len() {
                 let name = &names[idx];
+                output.push_str(name);
+                
+                // Add padding for all but last column
                 if col < num_cols - 1 {
-                    output.push_str(&format!("{:<width$}", name, width = col_width));
-                } else {
-                    output.push_str(name);
+                    let visible = widths[idx];
+                    let padding = col_width.saturating_sub(visible);
+                    for _ in 0..padding {
+                        output.push(' ');
+                    }
                 }
             }
         }
@@ -215,6 +276,8 @@ fn format_columns(names: &[String], output: &mut String) {
     }
 }
 
+
+#[inline]
 fn ls_cmp(a: &str, b: &str) -> Ordering {
     let a_dot = a.starts_with('.');
     let b_dot = b.starts_with('.');
@@ -226,7 +289,8 @@ fn ls_cmp(a: &str, b: &str) -> Ordering {
     }
 }
 
-fn suffix_for<'a>(path: &'a Path, meta: &'a fs::Metadata) -> &'a str {
+#[inline]
+fn suffix_for<'a>(meta: &'a fs::Metadata) -> &'a str {
     let ft = meta.file_type();
 
     if ft.is_symlink() {
@@ -246,6 +310,7 @@ fn suffix_for<'a>(path: &'a Path, meta: &'a fs::Metadata) -> &'a str {
     }
 }
 
+#[inline]
 fn file_type_char(meta: &fs::Metadata) -> char {
     match meta.mode() & 0o170000 {
         0o040000 => 'd',
@@ -261,30 +326,29 @@ fn file_type_char(meta: &fs::Metadata) -> char {
 
 fn permissions_string(meta: &fs::Metadata) -> String {
     let mode = meta.permissions().mode();
-    let mut s = String::new();
-    let bits = [0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001];
-    let chars = ['r', 'w', 'x'];
+    let mut chars = ['-'; 9];
+    
+    const BITS: [u32; 9] = [0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001];
+    const CHAR_MAP: [char; 3] = ['r', 'w', 'x'];
 
-    for i in 0..9 {
-        s.push(if mode & bits[i] != 0 {
-            chars[i % 3]
-        } else {
-            '-'
-        });
+    for (i, &bit) in BITS.iter().enumerate() {
+        if mode & bit != 0 {
+            chars[i] = CHAR_MAP[i % 3];
+        }
     }
 
-    let mut chars_vec: Vec<char> = s.chars().collect();
+    // Handle special bits
     if mode & 0o4000 != 0 {
-        chars_vec[2] = if mode & 0o100 != 0 { 's' } else { 'S' };
+        chars[2] = if mode & 0o100 != 0 { 's' } else { 'S' };
     }
     if mode & 0o2000 != 0 {
-        chars_vec[5] = if mode & 0o010 != 0 { 's' } else { 'S' };
+        chars[5] = if mode & 0o010 != 0 { 's' } else { 'S' };
     }
     if mode & 0o1000 != 0 {
-        chars_vec[8] = if mode & 0o001 != 0 { 't' } else { 'T' };
+        chars[8] = if mode & 0o001 != 0 { 't' } else { 'T' };
     }
 
-    chars_vec.into_iter().collect()
+    chars.iter().collect()
 }
 
 fn long_format_line(path: &Path, meta: &fs::Metadata, name: &str) -> String {
@@ -295,11 +359,11 @@ fn long_format_line(path: &Path, meta: &fs::Metadata, name: &str) -> String {
     let gid = meta.gid();
 
     let user = get_user_by_uid(uid)
-        .map(|u| u.name().to_string_lossy().to_string())
+        .map(|u| u.name().to_string_lossy().into_owned())
         .unwrap_or_else(|| uid.to_string());
 
     let group = get_group_by_gid(gid)
-        .map(|g| g.name().to_string_lossy().to_string())
+        .map(|g| g.name().to_string_lossy().into_owned())
         .unwrap_or_else(|| gid.to_string());
 
     let datetime = chrono::Local
@@ -321,15 +385,16 @@ fn long_format_line(path: &Path, meta: &fs::Metadata, name: &str) -> String {
         _ => format!("{:>8}", meta.len()),
     };
 
-    let mut display_name = name.to_string();
+    let mut display_name = String::with_capacity(name.len() + 20);
+    display_name.push_str(name);
+    
     if meta.file_type().is_symlink() {
         if let Ok(target_path) = fs::read_link(path) {
-            display_name.push_str(&format!(" -> {}", target_path.to_string_lossy()));
+            display_name.push_str(" -> ");
+            display_name.push_str(&target_path.to_string_lossy());
         }
-    }
-
-    if !meta.file_type().is_symlink() {
-        display_name.push_str(suffix_for(path, meta));
+    } else {
+        display_name.push_str(suffix_for( meta));
     }
 
     format!(
